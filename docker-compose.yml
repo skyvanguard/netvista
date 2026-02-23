@@ -1,0 +1,27 @@
+services:
+  backend:
+    build: ./backend
+    container_name: netvista-api
+    network_mode: host
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    volumes:
+      - netvista-data:/data
+    environment:
+      - DATABASE_URL=/data/netvista.db
+      - HOST=0.0.0.0
+      - PORT=8040
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: netvista-frontend
+    ports:
+      - "5175:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  netvista-data:
