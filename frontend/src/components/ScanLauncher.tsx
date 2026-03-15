@@ -39,12 +39,14 @@ export function ScanLauncher({ onScanCreated }: Props) {
       <h2 className="text-lg font-semibold mb-4">New Scan</h2>
 
       <div className="mb-4">
-        <label className="block text-sm text-gray-400 mb-1">Target</label>
+        <label htmlFor="scan-target" className="block text-sm text-gray-400 mb-1">Target</label>
         <input
+          id="scan-target"
           type="text"
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           placeholder="192.168.1.0/24"
+          aria-describedby={error ? 'scan-error' : undefined}
           className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-cyan-500"
         />
       </div>
@@ -78,7 +80,7 @@ export function ScanLauncher({ onScanCreated }: Props) {
         </div>
       </div>
 
-      {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
+      {error && <p id="scan-error" className="text-red-400 text-sm mb-3">{error}</p>}
 
       <button
         type="submit"

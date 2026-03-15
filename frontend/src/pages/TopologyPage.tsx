@@ -64,7 +64,7 @@ export function TopologyPage() {
   if (!id) return <div className="p-6">Invalid scan ID</div>;
 
   return (
-    <div className="h-screen flex flex-col">
+    <main className="h-screen flex flex-col">
       {/* Top bar */}
       <div className="bg-gray-900 border-b border-gray-800 px-4 py-3">
         <div className="flex items-center justify-between flex-wrap gap-3">
@@ -87,13 +87,13 @@ export function TopologyPage() {
       {/* Main area */}
       <div className="flex-1 flex relative overflow-hidden">
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-950/80 z-10">
+          <div role="status" aria-live="polite" className="absolute inset-0 flex items-center justify-center bg-gray-950/80 z-10">
             <div className="text-cyan-400 text-sm">Loading topology...</div>
           </div>
         )}
 
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-950/80 z-10">
+          <div role="alert" className="absolute inset-0 flex items-center justify-center bg-gray-950/80 z-10">
             <div className="text-red-400 text-sm">Error: {error}</div>
           </div>
         )}
@@ -108,6 +108,6 @@ export function TopologyPage() {
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }
