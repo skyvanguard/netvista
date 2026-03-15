@@ -1,3 +1,5 @@
+from collections.abc import AsyncGenerator
+
 import aiosqlite
 
 from config import DATABASE_URL
@@ -73,6 +75,18 @@ async def get_db() -> aiosqlite.Connection:
     await db.execute("PRAGMA journal_mode=WAL")
     await db.execute("PRAGMA foreign_keys=ON")
     return db
+
+
+async def get_db_dep() -> AsyncGenerator[aiosqlite.Connection, None]:
+    """FastAPI dependency that yields a DB connection."""
+    db = await aiosqlite.connect(DATABASE_URL)
+    db.row_factory = aiosqlite.Row
+    await db.execute("PRAGMA journal_mode=WAL")
+    await db.execute("PRAGMA foreign_keys=ON")
+    try:
+        yield db
+    finally:
+        await db.close()
 
 
 async def init_db() -> None:

@@ -4,40 +4,32 @@ import csv
 import io
 import json
 
-from fastapi import APIRouter, HTTPException, Query
+import aiosqlite
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
-from database import get_db
+from database import get_db_dep
+from services.host_loader import load_hosts_with_data
 
 router = APIRouter(prefix="/api/scans/{scan_id}/export", tags=["export"])
 
 
 @router.get("")
 async def export_scan(
-    scan_id: int, fmt: str = Query("json", alias="format", pattern="^(json|csv)$"),
+    scan_id: int,
+    fmt: str = Query("json", alias="format", pattern="^(json|csv)$"),
+    db: aiosqlite.Connection = Depends(get_db_dep),
 ):
-    db = await get_db()
-    try:
-        cursor = await db.execute("SELECT * FROM scans WHERE id=?", (scan_id,))
-        scan = await cursor.fetchone()
-        if not scan:
-            raise HTTPException(404, "Scan not found")
+    cursor = await db.execute("SELECT * FROM scans WHERE id=?", (scan_id,))
+    scan = await cursor.fetchone()
+    if not scan:
+        raise HTTPException(404, "Scan not found")
 
-        cursor = await db.execute("SELECT * FROM hosts WHERE scan_id=?", (scan_id,))
-        hosts = [dict(r) for r in await cursor.fetchall()]
+    hosts = await load_hosts_with_data(db, scan_id)
 
-        for host in hosts:
-            cursor = await db.execute(
-                "SELECT port, protocol, state, service, version FROM ports WHERE host_id=?",
-                (host["id"],),
-            )
-            host["ports"] = [dict(r) for r in await cursor.fetchall()]
-
-        if fmt == "csv":
-            return _export_csv(dict(scan), hosts)
-        return _export_json(dict(scan), hosts)
-    finally:
-        await db.close()
+    if fmt == "csv":
+        return _export_csv(dict(scan), hosts)
+    return _export_json(dict(scan), hosts)
 
 
 def _export_json(scan: dict, hosts: list[dict]) -> StreamingResponse:
