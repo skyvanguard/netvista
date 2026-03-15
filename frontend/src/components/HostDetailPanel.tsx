@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { Host } from '../types';
 import { RiskBadge } from './RiskBadge';
 import { NODE_TYPE_LABELS, NODE_TYPE_COLORS } from '../utils/formatters';
@@ -8,9 +9,16 @@ interface Props {
 }
 
 export function HostDetailPanel({ host, onClose }: Props) {
-  if (!host) return null;
+  const riskDetails = useMemo(() => {
+    if (!host?.risk_details) return [];
+    try {
+      return JSON.parse(host.risk_details) as string[];
+    } catch {
+      return [];
+    }
+  }, [host?.risk_details]);
 
-  const riskDetails: string[] = host.risk_details ? JSON.parse(host.risk_details) : [];
+  if (!host) return null;
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 w-80 max-h-[calc(100vh-200px)] overflow-y-auto">

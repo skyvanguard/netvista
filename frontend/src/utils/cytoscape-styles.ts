@@ -1,3 +1,5 @@
+import type cytoscape from 'cytoscape';
+
 const NODE_COLORS: Record<string, string> = {
   server: '#3b82f6',       // blue-500
   workstation: '#8b5cf6',  // violet-500
@@ -9,7 +11,7 @@ const NODE_COLORS: Record<string, string> = {
   subnet: 'transparent',
 };
 
-export const cytoscapeStyles: any[] = [
+export const cytoscapeStyles: cytoscape.StylesheetStyle[] = [
   // Subnet compound nodes
   {
     selector: 'node[type="subnet"]',
@@ -25,7 +27,10 @@ export const cytoscapeStyles: any[] = [
       'text-halign': 'center',
       'font-size': 14,
       'color': '#94a3b8',
-      'padding': '30px' as unknown as number,
+      'padding-left': '30px',
+      'padding-right': '30px',
+      'padding-top': '30px',
+      'padding-bottom': '30px',
       'text-margin-y': -10,
     },
   },
@@ -41,7 +46,7 @@ export const cytoscapeStyles: any[] = [
       'font-size': 10,
       'color': '#e2e8f0',
       'text-margin-y': 6,
-      'background-color': (ele: any) => NODE_COLORS[ele.data('type')] || NODE_COLORS.unknown,
+      'background-color': (ele: cytoscape.NodeSingular) => NODE_COLORS[ele.data('type')] || NODE_COLORS.unknown,
       'border-width': 2,
       'border-color': '#1e293b',
       'text-max-width': '80px',

@@ -11,9 +11,10 @@ interface Props {
   elements: TopologyElements | null;
   layout: string;
   onNodeSelect: (nodeData: Record<string, unknown> | null) => void;
+  onCyInit?: (cy: cytoscape.Core | null) => void;
 }
 
-export function NetworkGraph({ elements, layout, onNodeSelect }: Props) {
+export function NetworkGraph({ elements, layout, onNodeSelect, onCyInit }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
 
@@ -45,23 +46,17 @@ export function NetworkGraph({ elements, layout, onNodeSelect }: Props) {
     });
 
     cyRef.current = cy;
-  }, [elements, layout, onNodeSelect]);
+    onCyInit?.(cy);
+  }, [elements, layout, onNodeSelect, onCyInit]);
 
   useEffect(() => {
     initCy();
     return () => {
       cyRef.current?.destroy();
       cyRef.current = null;
+      onCyInit?.(null);
     };
-  }, [initCy]);
-
-  // Expose cy instance for export
-  useEffect(() => {
-    const container = containerRef.current;
-    if (container && cyRef.current) {
-      (container as any).__cy = cyRef.current;
-    }
-  });
+  }, [initCy, onCyInit]);
 
   return (
     <div

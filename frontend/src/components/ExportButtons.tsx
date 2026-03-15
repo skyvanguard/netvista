@@ -1,15 +1,14 @@
+import type cytoscape from 'cytoscape';
 import { api } from '../api';
 
 interface Props {
   scanId: number;
-  graphContainerRef?: React.RefObject<HTMLDivElement | null>;
+  cyRef: React.RefObject<cytoscape.Core | null>;
 }
 
-export function ExportButtons({ scanId, graphContainerRef }: Props) {
+export function ExportButtons({ scanId, cyRef }: Props) {
   const exportPng = () => {
-    const container = graphContainerRef?.current;
-    if (!container) return;
-    const cy = (container as any).__cy;
+    const cy = cyRef.current;
     if (!cy) return;
 
     const png = cy.png({ output: 'blob', bg: '#0a0a0f', full: true, scale: 2 });

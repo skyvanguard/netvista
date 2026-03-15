@@ -1,6 +1,8 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import type cytoscape from 'cytoscape';
 import { useTopology } from '../hooks/useTopology';
+import { useCytoscapeRef } from '../hooks/useCytoscapeRef';
 import { NetworkGraph } from '../components/NetworkGraph';
 import { GraphControls } from '../components/GraphControls';
 import { HostDetailPanel } from '../components/HostDetailPanel';
@@ -15,7 +17,7 @@ export function TopologyPage() {
   const { topology, hosts, loading, error } = useTopology(id);
   const [layout, setLayout] = useState('cose-bilkent');
   const [selectedHost, setSelectedHost] = useState<Host | null>(null);
-  const graphContainerRef = useRef<HTMLDivElement>(null);
+  const { cyRef, setCy } = useCytoscapeRef();
 
   const handleNodeSelect = useCallback(
     (nodeData: Record<string, unknown> | null) => {
@@ -33,13 +35,11 @@ export function TopologyPage() {
   const handleSearch = useCallback(
     (query: string) => {
       if (!query.trim()) return;
-      const container = graphContainerRef.current;
-      if (!container) return;
-      const cy = (container as any).__cy;
+      const cy = cyRef.current;
       if (!cy) return;
 
       const q = query.toLowerCase();
-      cy.nodes().forEach((node: any) => {
+      cy.nodes().forEach((node: cytoscape.NodeSingular) => {
         const data = node.data();
         const match =
           data.ip?.toLowerCase().includes(q) ||
@@ -53,13 +53,11 @@ export function TopologyPage() {
         cy.nodes().style('opacity', 1);
       }
     },
-    [],
+    [cyRef],
   );
 
   const handleFitView = () => {
-    const container = graphContainerRef.current;
-    if (!container) return;
-    const cy = (container as any).__cy;
+    const cy = cyRef.current;
     cy?.fit(undefined, 50);
   };
 
@@ -77,7 +75,7 @@ export function TopologyPage() {
           </div>
           <div className="flex items-center gap-4">
             <SearchBar onSearch={handleSearch} />
-            <ExportButtons scanId={id} graphContainerRef={graphContainerRef} />
+            <ExportButtons scanId={id} cyRef={cyRef} />
           </div>
         </div>
         <div className="flex items-center justify-between mt-2 flex-wrap gap-3">
@@ -100,8 +98,8 @@ export function TopologyPage() {
           </div>
         )}
 
-        <div ref={graphContainerRef} className="flex-1">
-          <NetworkGraph elements={topology} layout={layout} onNodeSelect={handleNodeSelect} />
+        <div className="flex-1">
+          <NetworkGraph elements={topology} layout={layout} onNodeSelect={handleNodeSelect} onCyInit={setCy} />
         </div>
 
         {selectedHost && (
