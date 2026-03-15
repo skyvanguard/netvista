@@ -13,7 +13,10 @@ class TestScansAPI:
 
         scans_mod.execute_scan = noop
         try:
-            resp = await client.post("/api/scans", json={"target": "192.168.1.0/24", "profile": "quick"})
+            resp = await client.post(
+                "/api/scans",
+                json={"target": "192.168.1.0/24", "profile": "quick"},
+            )
             assert resp.status_code == 201
             data = resp.json()
             assert data["target"] == "192.168.1.0/24"
@@ -23,7 +26,10 @@ class TestScansAPI:
             scans_mod.execute_scan = original
 
     async def test_create_scan_invalid_target(self, client):
-        resp = await client.post("/api/scans", json={"target": "invalid; rm -rf /", "profile": "quick"})
+        resp = await client.post(
+            "/api/scans",
+            json={"target": "invalid; rm -rf /", "profile": "quick"},
+        )
         assert resp.status_code == 422
 
     async def test_list_scans_empty(self, client):

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from fastapi import APIRouter, HTTPException
 
 from database import get_db

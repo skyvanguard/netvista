@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import asyncio
-import tempfile
 import os
+import tempfile
+from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import Any, Callable, Awaitable
+from typing import Any
 
 from config import NMAP_PATH
-from scanner.profiles import get_profile_flags
 from scanner.parser import parse_nmap_xml
+from scanner.profiles import get_profile_flags
 
 
 async def run_nmap_scan(

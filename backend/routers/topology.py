@@ -3,9 +3,9 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from database import get_db
-from models import TopologyOut, SubnetOut
+from models import SubnetOut, TopologyOut
 from topology.builder import to_cytoscape_elements
-from topology.subnet import group_by_subnet, detect_gateways
+from topology.subnet import detect_gateways, group_by_subnet
 
 router = APIRouter(prefix="/api/scans/{scan_id}", tags=["topology"])
 

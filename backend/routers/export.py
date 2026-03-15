@@ -13,7 +13,9 @@ router = APIRouter(prefix="/api/scans/{scan_id}/export", tags=["export"])
 
 
 @router.get("")
-async def export_scan(scan_id: int, format: str = Query("json", pattern="^(json|csv)$")):
+async def export_scan(
+    scan_id: int, fmt: str = Query("json", alias="format", pattern="^(json|csv)$"),
+):
     db = await get_db()
     try:
         cursor = await db.execute("SELECT * FROM scans WHERE id=?", (scan_id,))
@@ -31,7 +33,7 @@ async def export_scan(scan_id: int, format: str = Query("json", pattern="^(json|
             )
             host["ports"] = [dict(r) for r in await cursor.fetchall()]
 
-        if format == "csv":
+        if fmt == "csv":
             return _export_csv(dict(scan), hosts)
         return _export_json(dict(scan), hosts)
     finally:

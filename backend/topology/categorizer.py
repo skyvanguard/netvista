@@ -11,7 +11,9 @@ CAMERA_PORTS = {554, 8000, 8001, 37777}  # RTSP, Hikvision, Dahua
 IOT_PORTS = {1883, 8883, 5683}  # MQTT, MQTTS, CoAP
 
 # Vendor keywords
-NETWORK_VENDORS = {"cisco", "mikrotik", "fortinet", "fortigate", "juniper", "ubiquiti", "aruba", "tp-link"}
+NETWORK_VENDORS = {
+    "cisco", "mikrotik", "fortinet", "fortigate", "juniper", "ubiquiti", "aruba", "tp-link",
+}
 PRINTER_VENDORS = {"hp", "epson", "brother", "canon", "lexmark", "xerox", "ricoh", "kyocera"}
 CAMERA_VENDORS = {"hikvision", "dahua", "axis", "hanwha", "vivotek", "uniview"}
 
@@ -36,7 +38,8 @@ def _categorize_single(host: dict[str, Any]) -> str:
         return "network_device"
 
     # Check OS + port patterns
-    if open_ports & CAMERA_PORTS and (any(v in os_name for v in CAMERA_VENDORS) or 554 in open_ports):
+    has_camera_signal = any(v in os_name for v in CAMERA_VENDORS) or 554 in open_ports
+    if open_ports & CAMERA_PORTS and has_camera_signal:
         return "camera"
 
     if open_ports & PRINTER_PORTS:

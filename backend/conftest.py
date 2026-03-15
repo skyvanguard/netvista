@@ -1,9 +1,8 @@
-import pytest
 import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
-from main import app
 from database import SCHEMA
+from main import app
 
 
 @pytest_asyncio.fixture
@@ -26,10 +25,10 @@ async def client(db):
     async def override_get_db():
         return db
 
-    import routers.scans as scans_mod
-    import routers.hosts as hosts_mod
-    import routers.topology as topo_mod
     import routers.export as export_mod
+    import routers.hosts as hosts_mod
+    import routers.scans as scans_mod
+    import routers.topology as topo_mod
     import services.scan_manager as scan_mod
 
     original_fns = {

@@ -1,6 +1,6 @@
 from topology.categorizer import _categorize_single
 from topology.risk import _score_single
-from topology.subnet import group_by_subnet, detect_gateways
+from topology.subnet import detect_gateways, group_by_subnet
 
 
 class TestCategorizer:
