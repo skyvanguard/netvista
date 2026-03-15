@@ -1,0 +1,16 @@
+.git
+.github
+.claude
+.env
+.env.*
+node_modules
+__pycache__
+*.pyc
+*.db
+*.sqlite
+dist
+docs
+*.md
+!README.md
+.vscode
+.idea

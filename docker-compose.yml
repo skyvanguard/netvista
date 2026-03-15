@@ -12,7 +12,20 @@ services:
       - DATABASE_URL=/data/netvista.db
       - HOST=0.0.0.0
       - PORT=8040
+      - CORS_ORIGINS=http://localhost:5175
+      - LOG_LEVEL=INFO
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8040/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   frontend:
     build: ./frontend
@@ -20,8 +33,20 @@ services:
     ports:
       - "5175:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
 volumes:
   netvista-data:
