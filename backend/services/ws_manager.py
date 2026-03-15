@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import json
+import logging
+
 from fastapi import WebSocket
+
+logger = logging.getLogger(__name__)
 
 
 class WSManager:
@@ -26,6 +30,7 @@ class WSManager:
             try:
                 await ws.send_text(json.dumps(data))
             except Exception:
+                logger.warning("WebSocket send failed for scan %d, removing connection", scan_id)
                 dead.append(ws)
         for ws in dead:
             conns.remove(ws)

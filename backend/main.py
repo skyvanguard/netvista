@@ -5,11 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import CORS_ORIGINS
 from database import init_db
+from log import setup_logging
 from routers import scans, hosts, topology, export
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    setup_logging()
     await init_db()
     yield
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from datetime import datetime, timezone
 
 from database import get_db
@@ -10,11 +11,14 @@ from topology.builder import build_topology
 from topology.categorizer import categorize_hosts
 from topology.risk import score_hosts
 
+logger = logging.getLogger(__name__)
+
 
 async def execute_scan(scan_id: int, target: str, profile: str) -> None:
     """Run scan in background, store results, compute topology."""
     db = await get_db()
     try:
+        logger.info("Starting scan %d: %s with profile %s", scan_id, target, profile)
         now = datetime.now(timezone.utc).isoformat()
         await db.execute(
             "UPDATE scans SET status='running', started_at=? WHERE id=?",
@@ -108,6 +112,8 @@ async def execute_scan(scan_id: int, target: str, profile: str) -> None:
         )
         await db.commit()
 
+        logger.info("Scan %d completed: %d hosts found", scan_id, len(hosts))
+
         await ws_manager.broadcast(scan_id, {
             "scan_id": scan_id,
             "status": "completed",
@@ -117,6 +123,7 @@ async def execute_scan(scan_id: int, target: str, profile: str) -> None:
         })
 
     except Exception as exc:
+        logger.exception("Unexpected error in scan %d", scan_id)
         now = datetime.now(timezone.utc).isoformat()
         await db.execute(
             "UPDATE scans SET status='failed', finished_at=?, error=? WHERE id=?",
