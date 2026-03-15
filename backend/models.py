@@ -1,11 +1,41 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+import ipaddress
+import re
+
+from pydantic import BaseModel, Field, field_validator
+
+_HOSTNAME_RE = re.compile(
+    r"^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.[A-Za-z0-9-]{1,63})*$"
+)
 
 
 class ScanCreate(BaseModel):
     target: str = Field(..., examples=["192.168.1.0/24"])
     profile: str = Field(default="standard", pattern="^(quick|standard|deep)$")
+
+    @field_validator("target")
+    @classmethod
+    def validate_target(cls, v: str) -> str:
+        v = v.strip()
+        # Try parsing as a single IP address
+        try:
+            ipaddress.ip_address(v)
+            return v
+        except ValueError:
+            pass
+        # Try parsing as a CIDR network
+        try:
+            ipaddress.ip_network(v, strict=False)
+            return v
+        except ValueError:
+            pass
+        # Try matching as a hostname
+        if len(v) <= 253 and _HOSTNAME_RE.match(v):
+            return v
+        raise ValueError(
+            "target must be a valid IP address, CIDR network, or hostname"
+        )
 
 
 class PortOut(BaseModel):
