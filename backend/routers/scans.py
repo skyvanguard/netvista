@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.responses import Response
 
 from database import get_db
 from models import ScanCreate, ScanOut
@@ -60,8 +61,8 @@ async def get_scan(scan_id: int) -> dict:
         await db.close()
 
 
-@router.delete("/{scan_id}", status_code=204)
-async def delete_scan(scan_id: int) -> None:
+@router.delete("/{scan_id}", status_code=204, response_class=Response, response_model=None)
+async def delete_scan(scan_id: int):
     db = await get_db()
     try:
         cursor = await db.execute("SELECT id FROM scans WHERE id=?", (scan_id,))
