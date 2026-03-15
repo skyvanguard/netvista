@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 from database import get_db
 from scanner.nmap_runner import run_nmap_scan
+from scanner.profiles import get_profile_timeout
 from services.ws_manager import ws_manager
 from topology.builder import build_topology
 from topology.categorizer import categorize_hosts
@@ -35,7 +36,8 @@ async def execute_scan(scan_id: int, target: str, profile: str) -> None:
             })
 
         try:
-            hosts = await run_nmap_scan(target, profile, on_progress)
+            timeout = get_profile_timeout(profile)
+            hosts = await run_nmap_scan(target, profile, on_progress, timeout=timeout)
         except Exception as exc:
             now = datetime.now(UTC).isoformat()
             await db.execute(

@@ -15,9 +15,14 @@ from services.ws_manager import ws_manager
 
 router = APIRouter(prefix="/api/scans", tags=["scans"])
 
+_scan_semaphore = asyncio.Semaphore(3)
+
 
 @router.post("", response_model=ScanOut, status_code=201)
 async def create_scan(body: ScanCreate, db: aiosqlite.Connection = Depends(get_db_dep)) -> dict:
+    if _scan_semaphore.locked():
+        raise HTTPException(429, "Too many concurrent scans. Please wait.")
+
     now = datetime.now(UTC).isoformat()
     cursor = await db.execute(
         "INSERT INTO scans (target, profile, status, created_at) VALUES (?, ?, 'pending', ?)",

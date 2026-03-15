@@ -6,6 +6,7 @@ SCAN_PROFILES: dict[str, dict] = {
         "flags": ["-sn", "-PE", "-PP", "-PS21,22,80,443"],
         "description": "Ping sweep only — fast host discovery, no port scan",
         "estimated_time": "~30 seconds for /24",
+        "timeout": 120,
     },
     "standard": {
         "name": "Standard",
@@ -15,6 +16,7 @@ SCAN_PROFILES: dict[str, dict] = {
         ],
         "description": "SYN scan, top 1000 ports, OS detection, traceroute",
         "estimated_time": "~15 minutes for /24",
+        "timeout": 600,
     },
     "deep": {
         "name": "Deep",
@@ -24,6 +26,7 @@ SCAN_PROFILES: dict[str, dict] = {
         ],
         "description": "Full port scan with scripts, OS detection, traceroute",
         "estimated_time": "~45 minutes for /24",
+        "timeout": 1800,
     },
 }
 
@@ -32,3 +35,9 @@ def get_profile_flags(profile: str) -> list[str]:
     if profile not in SCAN_PROFILES:
         raise ValueError(f"Unknown profile: {profile}")
     return SCAN_PROFILES[profile]["flags"]
+
+
+def get_profile_timeout(profile: str) -> int:
+    if profile not in SCAN_PROFILES:
+        raise ValueError(f"Unknown profile: {profile}")
+    return SCAN_PROFILES[profile]["timeout"]

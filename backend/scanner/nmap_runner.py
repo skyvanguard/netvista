@@ -16,6 +16,7 @@ async def run_nmap_scan(
     target: str,
     profile: str,
     on_progress: Callable[[float, str], Awaitable[None]] | None = None,
+    timeout: int = 600,
 ) -> list[dict[str, Any]]:
     """Run nmap scan and return parsed host list."""
     flags = get_profile_flags(profile)
@@ -50,7 +51,15 @@ async def run_nmap_scan(
                     except (ValueError, IndexError):
                         pass
 
-        _, stderr_data = await process.communicate()
+        try:
+            await asyncio.wait_for(process.wait(), timeout=timeout)
+        except TimeoutError:
+            process.kill()
+            raise RuntimeError(f"nmap scan timed out after {timeout}s") from None
+
+        stderr_data = b""
+        if process.stderr:
+            stderr_data = await process.stderr.read()
 
         if process.returncode != 0 and not Path(xml_path).exists():
             error_msg = stderr_data.decode(errors="replace").strip()
