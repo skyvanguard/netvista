@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 
@@ -25,14 +26,19 @@ class WSManager:
 
     async def broadcast(self, scan_id: int, data: dict) -> None:
         conns = self._connections.get(scan_id, [])
-        dead: list[WebSocket] = []
-        for ws in conns:
-            try:
-                await ws.send_text(json.dumps(data))
-            except Exception:
-                logger.warning("WebSocket send failed for scan %d, removing connection", scan_id)
-                dead.append(ws)
+        if not conns:
+            return
+        payload = json.dumps(data)
+        results = await asyncio.gather(
+            *[ws.send_text(payload) for ws in conns],
+            return_exceptions=True,
+        )
+        dead = [
+            ws for ws, result in zip(conns, results, strict=True)
+            if isinstance(result, Exception)
+        ]
         for ws in dead:
+            logger.warning("Removing dead WebSocket for scan %d", scan_id)
             conns.remove(ws)
 
 

@@ -15,8 +15,8 @@ def group_by_subnet(hosts: list[dict[str, Any]]) -> dict[str, list[dict[str, Any
             subnet_key = str(network)
         except ValueError:
             subnet_key = "unknown"
-        host["subnet"] = subnet_key
-        subnets[subnet_key].append(host)
+        enriched = {**host, "subnet": subnet_key}
+        subnets[subnet_key].append(enriched)
     return dict(subnets)
 
 
