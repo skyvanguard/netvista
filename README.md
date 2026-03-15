@@ -182,7 +182,7 @@ netvista/
 │   │   ├── api.ts           # API client
 │   │   ├── types.ts         # TypeScript interfaces
 │   │   ├── components/      # React components
-│   │   ├── hooks/           # Custom hooks (useScanProgress, useTopology, useCytoscape)
+│   │   ├── hooks/           # Custom hooks (useScanProgress, useTopology, useCytoscapeRef)
 │   │   ├── pages/           # Page components (ScanPage, TopologyPage)
 │   │   └── utils/           # Formatters, Cytoscape styles, layouts
 │   ├── nginx.conf           # Production reverse proxy
