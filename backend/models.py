@@ -105,6 +105,13 @@ class TopologyOut(BaseModel):
     edges: list[TopologyEdge]
 
 
+class PaginatedScans(BaseModel):
+    items: list[ScanOut]
+    total: int
+    skip: int
+    limit: int
+
+
 class ScanProgress(BaseModel):
     scan_id: int
     status: str

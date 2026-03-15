@@ -20,7 +20,10 @@ export const api = {
       body: JSON.stringify({ target, profile }),
     }),
 
-  listScans: () => fetchJSON<Scan[]>('/scans'),
+  listScans: (skip = 0, limit = 50) =>
+    fetchJSON<{ items: Scan[]; total: number; skip: number; limit: number }>(
+      `/scans?skip=${skip}&limit=${limit}`
+    ),
   getScan: (id: number) => fetchJSON<Scan>(`/scans/${id}`),
   deleteScan: (id: number) => fetchJSON<void>(`/scans/${id}`, { method: 'DELETE' }),
 

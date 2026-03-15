@@ -14,7 +14,7 @@ export function ScanPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.listScans().then(setScans).catch(console.error);
+    api.listScans().then((res) => setScans(res.items)).catch(console.error);
   }, []);
 
   // Poll active scan status

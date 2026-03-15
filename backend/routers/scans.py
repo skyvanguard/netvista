@@ -5,10 +5,11 @@ from datetime import UTC, datetime
 
 import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import Query as QueryParam
 from fastapi.responses import Response
 
 from database import get_db_dep
-from models import ScanCreate, ScanOut
+from models import PaginatedScans, ScanCreate, ScanOut
 from services.scan_manager import execute_scan
 from services.ws_manager import ws_manager
 
@@ -34,11 +35,27 @@ async def create_scan(body: ScanCreate, db: aiosqlite.Connection = Depends(get_d
     return dict(scan)
 
 
-@router.get("", response_model=list[ScanOut])
-async def list_scans(db: aiosqlite.Connection = Depends(get_db_dep)) -> list[dict]:
-    cursor = await db.execute("SELECT * FROM scans ORDER BY id DESC")
+@router.get("", response_model=PaginatedScans)
+async def list_scans(
+    skip: int = QueryParam(0, ge=0),
+    limit: int = QueryParam(50, ge=1, le=200),
+    db: aiosqlite.Connection = Depends(get_db_dep),
+) -> dict:
+    cursor = await db.execute("SELECT COUNT(*) as cnt FROM scans")
+    row = await cursor.fetchone()
+    total = row["cnt"]
+
+    cursor = await db.execute(
+        "SELECT * FROM scans ORDER BY id DESC LIMIT ? OFFSET ?",
+        (limit, skip),
+    )
     rows = await cursor.fetchall()
-    return [dict(r) for r in rows]
+    return {
+        "items": [dict(r) for r in rows],
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+    }
 
 
 @router.get("/{scan_id}", response_model=ScanOut)

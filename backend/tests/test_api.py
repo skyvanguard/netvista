@@ -35,6 +35,11 @@ class TestScansAPI:
     async def test_list_scans_empty(self, client):
         resp = await client.get("/api/scans")
         assert resp.status_code == 200
+        data = resp.json()
+        assert data["items"] == []
+        assert data["total"] == 0
+        assert data["skip"] == 0
+        assert data["limit"] == 50
 
     async def test_get_scan_not_found(self, client):
         resp = await client.get("/api/scans/999")
