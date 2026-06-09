@@ -5,6 +5,8 @@ import re
 
 from pydantic import BaseModel, Field, field_validator
 
+from config import MAX_TARGET_ADDRESSES
+
 # Hostname per RFC 1123 (labels of letters/digits/hyphens, dot-separated).
 _HOSTNAME_RE = re.compile(
     r"^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.(?!-)[A-Za-z0-9-]{1,63}(?<!-))*$"
@@ -27,10 +29,16 @@ class ScanCreate(BaseModel):
         if not target or target.startswith("-"):
             raise ValueError("target must be an IP address, CIDR range, or hostname")
         try:
-            ipaddress.ip_network(target, strict=False)
-            return target
+            network = ipaddress.ip_network(target, strict=False)
         except ValueError:
-            pass
+            network = None
+        if network is not None:
+            if network.num_addresses > MAX_TARGET_ADDRESSES:
+                raise ValueError(
+                    f"target range too large: {network.num_addresses} addresses "
+                    f"(max {MAX_TARGET_ADDRESSES})"
+                )
+            return target
         if _HOSTNAME_RE.match(target):
             return target
         raise ValueError("target must be an IP address, CIDR range, or hostname")

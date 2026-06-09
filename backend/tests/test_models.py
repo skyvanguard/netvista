@@ -54,3 +54,27 @@ def test_invalid_profile_rejected():
 
 def test_profile_defaults_to_standard():
     assert ScanCreate(target="10.0.0.1").profile == "standard"
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        "192.168.1.0/24",  # 256 addresses
+        "192.168.0.0/16",  # 65536 — exactly the default max
+        "10.0.0.5",        # single host
+    ],
+)
+def test_target_within_size_limit_accepted(target):
+    assert ScanCreate(target=target).target == target
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        "10.0.0.0/8",   # ~16M addresses
+        "10.0.0.0/15",  # 131072 > 65536 default
+    ],
+)
+def test_target_range_too_large_rejected(target):
+    with pytest.raises(ValidationError):
+        ScanCreate(target=target)

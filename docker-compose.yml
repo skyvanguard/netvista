@@ -12,6 +12,9 @@ services:
       - DATABASE_URL=/data/netvista.db
       - HOST=0.0.0.0
       - PORT=8040
+      # Optional API key (empty = auth disabled). Set in a .env file or shell.
+      - API_KEY=${API_KEY:-}
+      - MAX_TARGET_ADDRESSES=${MAX_TARGET_ADDRESSES:-65536}
     restart: unless-stopped
 
   frontend:

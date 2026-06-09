@@ -57,6 +57,10 @@ The backend has `pytest` unit tests for the pure logic and lifecycle (`tests/`: 
 - Edges are computed **at scan time** and stored in `topology_edges`.
 - But subnets and gateways are **recomputed on every read** in `routers/topology.py` (it reloads hosts, calls `group_by_subnet`+`detect_gateways`, then `to_cytoscape_elements`). The mutation side effect of `group_by_subnet` is what makes the Cytoscape conversion work — call it before `to_cytoscape_elements`.
 
+### Auth & input limits
+- API-key auth is **opt-in**: set `API_KEY` (backend env). When empty the API is open (default). When set, every `/api` route except `/api/health` requires the key — sent as the `X-API-Key` header (JSON calls), or the `api_key` query param (export download links and the WebSocket, which can't set headers). Logic lives in `auth.py::verify_api_key`; the scans router applies it per-endpoint so its WS can check the query param itself. The frontend reads `VITE_API_KEY` (build-time) and attaches it automatically (`src/api.ts`).
+- `ScanCreate.validate_target` rejects ranges larger than `MAX_TARGET_ADDRESSES` (default 65536 = a /16) to avoid launching an enormous scan.
+
 ### Database access pattern
 - No connection pool. Every handler calls `get_db()` (a fresh `aiosqlite` connection) and closes it in `finally`. Follow this pattern in new routers.
 - Schema lives as one `SCHEMA` string in `database.py`, applied on startup via the FastAPI `lifespan` hook. Cascading deletes rely on `foreign_keys=ON`, so deleting a scan removes its hosts/ports/hops/edges.

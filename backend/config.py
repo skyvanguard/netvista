@@ -6,4 +6,10 @@ HOST: str = os.getenv("HOST", "0.0.0.0")
 PORT: int = int(os.getenv("PORT", "8040"))
 NMAP_PATH: str = os.getenv("NMAP_PATH", "nmap")
 MAX_CONCURRENT_SCANS: int = int(os.getenv("MAX_CONCURRENT_SCANS", "2"))
+# Optional API key. When empty, auth is disabled (open API, current default).
+# When set, every /api endpoint (except /api/health) requires it.
+API_KEY: str = os.getenv("API_KEY", "")
+# Reject scan targets whose range is larger than this many addresses
+# (default 65536 = a /16). Guards against accidentally scanning, e.g., a /8.
+MAX_TARGET_ADDRESSES: int = int(os.getenv("MAX_TARGET_ADDRESSES", "65536"))
 DATA_DIR: Path = Path(os.getenv("DATA_DIR", "/data" if os.path.exists("/data") else "."))
