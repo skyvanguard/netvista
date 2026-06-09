@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import init_db
-from routers import scans, hosts, topology, export
+from routers import export, hosts, scans, topology
 from services.scan_manager import fail_orphaned_scans
 
 

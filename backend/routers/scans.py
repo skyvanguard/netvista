@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
 from database import get_db
 from models import ScanCreate, ScanOut
 from services.scan_manager import execute_scan
-from services.scan_registry import register, cancel
+from services.scan_registry import cancel, register
 from services.ws_manager import ws_manager
 
 router = APIRouter(prefix="/api/scans", tags=["scans"])
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/scans", tags=["scans"])
 async def create_scan(body: ScanCreate) -> dict:
     db = await get_db()
     try:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         cursor = await db.execute(
             "INSERT INTO scans (target, profile, status, created_at) VALUES (?, ?, 'pending', ?)",
             (body.target, body.profile, now),

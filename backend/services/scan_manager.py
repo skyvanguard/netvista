@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import asyncio
+from datetime import UTC, datetime
 
+from config import MAX_CONCURRENT_SCANS
 from database import get_db
 from scanner.nmap_runner import run_nmap_scan
 from services.ws_manager import ws_manager
 from topology.builder import build_topology
 from topology.categorizer import categorize_hosts
 from topology.risk import score_hosts
+
+# Bound how many nmap scans run at once; extras stay 'pending' until a slot
+# frees up, so a burst of deep scans can't saturate the host.
+_scan_semaphore = asyncio.Semaphore(MAX_CONCURRENT_SCANS)
 
 
 async def fail_orphaned_scans() -> None:
@@ -18,7 +24,7 @@ async def fail_orphaned_scans() -> None:
     """
     db = await get_db()
     try:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         await db.execute(
             "UPDATE scans SET status='failed', finished_at=?, error=? "
             "WHERE status IN ('pending', 'running')",
@@ -30,10 +36,20 @@ async def fail_orphaned_scans() -> None:
 
 
 async def execute_scan(scan_id: int, target: str, profile: str) -> None:
+    """Wait for a free concurrency slot, then run the scan.
+
+    While queued the scan stays 'pending' (its DB row is untouched until a
+    slot is acquired).
+    """
+    async with _scan_semaphore:
+        await _execute_scan(scan_id, target, profile)
+
+
+async def _execute_scan(scan_id: int, target: str, profile: str) -> None:
     """Run scan in background, store results, compute topology."""
     db = await get_db()
     try:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         await db.execute(
             "UPDATE scans SET status='running', started_at=? WHERE id=?",
             (now, scan_id),
@@ -52,7 +68,7 @@ async def execute_scan(scan_id: int, target: str, profile: str) -> None:
         try:
             hosts = await run_nmap_scan(target, profile, on_progress)
         except Exception as exc:
-            now = datetime.now(timezone.utc).isoformat()
+            now = datetime.now(UTC).isoformat()
             await db.execute(
                 "UPDATE scans SET status='failed', finished_at=?, error=? WHERE id=?",
                 (now, str(exc), scan_id),
@@ -119,7 +135,7 @@ async def execute_scan(scan_id: int, target: str, profile: str) -> None:
                  edge.get("type", "traceroute"), edge.get("weight", 1.0)),
             )
 
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         await db.execute(
             "UPDATE scans SET status='completed', finished_at=?, host_count=? WHERE id=?",
             (now, len(hosts), scan_id),
@@ -135,7 +151,7 @@ async def execute_scan(scan_id: int, target: str, profile: str) -> None:
         })
 
     except Exception as exc:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         await db.execute(
             "UPDATE scans SET status='failed', finished_at=?, error=? WHERE id=?",
             (now, str(exc), scan_id),

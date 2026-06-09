@@ -17,8 +17,9 @@ Scan networks with nmap, infer architecture, and render an interactive topology 
 - Frontend build / typecheck: `cd frontend && npm run build` (runs `tsc -b` then `vite build`)
 - Full stack: `docker compose up --build` → frontend http://localhost:5175, API http://localhost:8040, docs `/docs`
 - Backend tests: `cd backend && pip install -r requirements-dev.txt && pytest` (run a single file with `pytest tests/test_parser.py`)
+- Backend lint: `cd backend && ruff check .` (config in `backend/ruff.toml`)
 
-The backend has `pytest` unit tests for the pure logic (`tests/`: parser, categorizer, risk, subnet, target validation). There is no frontend test runner yet and no Python linter configured.
+The backend has `pytest` unit tests for the pure logic and lifecycle (`tests/`: parser, categorizer, risk, subnet, target validation, orphan recovery, task cancellation, concurrency limit, host loader) and is linted with `ruff`. There is no frontend test runner yet.
 
 ## Ports & paths
 - Backend: host 8040 → container 8000 conceptually, but in Docker the backend runs `--port 8040` under `network_mode: host`, so it binds 8040 directly on the host (no port mapping in compose).
@@ -35,7 +36,7 @@ The backend has `pytest` unit tests for the pure logic (`tests/`: parser, catego
 
 ### Scan lifecycle (the core flow)
 1. `POST /api/scans` (routers/scans.py) inserts a `pending` scan row, then fires `execute_scan` via `asyncio.create_task`, registers the task in `services/scan_registry.py`, and returns immediately.
-2. `services/scan_manager.py::execute_scan` is the orchestrator: sets status `running` → runs nmap → categorizes → scores → persists hosts/ports/traceroute → builds & persists topology edges → sets `completed` (or `failed` with error). It broadcasts every state change over WebSocket.
+2. `services/scan_manager.py::execute_scan` first waits on a `Semaphore(MAX_CONCURRENT_SCANS)` (env-configurable, default 2) — queued scans stay `pending` — then `_execute_scan` is the orchestrator: sets status `running` → runs nmap → categorizes → scores → persists hosts/ports/traceroute → builds & persists topology edges → sets `completed` (or `failed` with error). It broadcasts every state change over WebSocket.
 3. State machine: `pending → running → completed | failed`.
 4. `DELETE /api/scans/{id}` calls `scan_registry.cancel`, which cancels the running task; `nmap_runner` kills the nmap subprocess in a `finally` so it isn't orphaned.
 5. On startup the `lifespan` hook runs `fail_orphaned_scans` — background tasks don't survive a restart, so any scan left `pending`/`running` is marked `failed`.
