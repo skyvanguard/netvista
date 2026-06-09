@@ -24,6 +24,18 @@ docker compose up --build
 - API: http://localhost:8040
 - API docs: http://localhost:8040/docs
 
+## Configuration
+
+Backend env vars (all optional):
+
+| Var | Default | Description |
+|-----|---------|-------------|
+| `API_KEY` | _(empty)_ | When set, every `/api` route (except `/api/health`) requires it via the `X-API-Key` header or `api_key` query param. Empty = open API. |
+| `MAX_TARGET_ADDRESSES` | `65536` | Rejects scan targets whose range exceeds this many addresses (default = a /16). |
+| `MAX_CONCURRENT_SCANS` | `2` | Max nmap scans running at once; extras stay `pending`. |
+
+If `API_KEY` is set, the frontend must be built with a matching `VITE_API_KEY` (see `frontend/.env.example`).
+
 ## Architecture
 
 ```
