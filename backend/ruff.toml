@@ -1,0 +1,8 @@
+# Ruff config for the NetVista backend.
+line-length = 100
+target-version = "py312"
+extend-exclude = ["tests"]
+
+[lint]
+# pycodestyle errors, pyflakes, import sorting, pyupgrade, bugbear.
+select = ["E", "F", "I", "UP", "B"]

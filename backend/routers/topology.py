@@ -2,33 +2,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from database import get_db
-from models import TopologyOut, SubnetOut
+from database import get_db, load_scan_hosts
+from models import SubnetOut, TopologyOut
 from topology.builder import to_cytoscape_elements
-from topology.subnet import group_by_subnet, detect_gateways
+from topology.subnet import detect_gateways, group_by_subnet
 
 router = APIRouter(prefix="/api/scans/{scan_id}", tags=["topology"])
-
-
-async def _load_hosts_with_data(db, scan_id: int) -> list[dict]:
-    """Load full host data including ports and traceroute."""
-    cursor = await db.execute("SELECT * FROM hosts WHERE scan_id=?", (scan_id,))
-    hosts = [dict(r) for r in await cursor.fetchall()]
-
-    for host in hosts:
-        cursor = await db.execute(
-            "SELECT port, protocol, state, service, version FROM ports WHERE host_id=?",
-            (host["id"],),
-        )
-        host["ports"] = [dict(r) for r in await cursor.fetchall()]
-
-        cursor = await db.execute(
-            "SELECT hop, ip, rtt, hostname FROM traceroute_hops WHERE host_id=? ORDER BY hop",
-            (host["id"],),
-        )
-        host["traceroute"] = [dict(r) for r in await cursor.fetchall()]
-
-    return hosts
 
 
 @router.get("/topology", response_model=TopologyOut)
@@ -39,7 +18,7 @@ async def get_topology(scan_id: int) -> dict:
         if not await cursor.fetchone():
             raise HTTPException(404, "Scan not found")
 
-        hosts = await _load_hosts_with_data(db, scan_id)
+        hosts = await load_scan_hosts(db, scan_id)
 
         # Load edges
         cursor = await db.execute(
@@ -69,7 +48,7 @@ async def get_subnets(scan_id: int) -> list[dict]:
         if not await cursor.fetchone():
             raise HTTPException(404, "Scan not found")
 
-        hosts = await _load_hosts_with_data(db, scan_id)
+        hosts = await load_scan_hosts(db, scan_id)
         subnets = group_by_subnet(hosts)
         gateways = detect_gateways(hosts)
 

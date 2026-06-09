@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
 from database import get_db
 from models import ScanCreate, ScanOut
 from services.scan_manager import execute_scan
+from services.scan_registry import cancel, register
 from services.ws_manager import ws_manager
 
 router = APIRouter(prefix="/api/scans", tags=["scans"])
@@ -17,7 +18,7 @@ router = APIRouter(prefix="/api/scans", tags=["scans"])
 async def create_scan(body: ScanCreate) -> dict:
     db = await get_db()
     try:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         cursor = await db.execute(
             "INSERT INTO scans (target, profile, status, created_at) VALUES (?, ?, 'pending', ?)",
             (body.target, body.profile, now),
@@ -28,8 +29,9 @@ async def create_scan(body: ScanCreate) -> dict:
         row = await db.execute("SELECT * FROM scans WHERE id=?", (scan_id,))
         scan = await row.fetchone()
 
-        # Launch background scan
-        asyncio.create_task(execute_scan(scan_id, body.target, body.profile))
+        # Launch background scan and track it so it can be cancelled.
+        task = asyncio.create_task(execute_scan(scan_id, body.target, body.profile))
+        register(scan_id, task)
 
         return dict(scan)
     finally:
@@ -67,6 +69,8 @@ async def delete_scan(scan_id: int) -> None:
         cursor = await db.execute("SELECT id FROM scans WHERE id=?", (scan_id,))
         if not await cursor.fetchone():
             raise HTTPException(404, "Scan not found")
+        # Stop the background task (and its nmap subprocess) if still running.
+        cancel(scan_id)
         await db.execute("DELETE FROM scans WHERE id=?", (scan_id,))
         await db.commit()
     finally:

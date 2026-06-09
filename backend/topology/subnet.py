@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import ipaddress
-from typing import Any
 from collections import defaultdict
+from typing import Any
 
 
 def group_by_subnet(hosts: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:

@@ -31,9 +31,8 @@ docker compose up --build
 │  React 18   │────▶│  FastAPI      │────▶│   nmap      │
 │  Cytoscape  │◀────│  WebSocket    │◀────│   subprocess│
 │  TailwindCSS│     │  aiosqlite    │     └─────────────┘
-└─────────────┘     │  networkx     │
-   :5175            └──────────────┘
-                       :8040
+└─────────────┘     └──────────────┘
+   :5175                :8040
 ```
 
 ## Scan Profiles

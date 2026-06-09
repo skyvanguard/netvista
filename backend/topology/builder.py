@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from topology.subnet import group_by_subnet, detect_gateways
+from topology.subnet import detect_gateways, group_by_subnet
 
 
 def build_topology(hosts: list[dict[str, Any]]) -> list[dict[str, Any]]:

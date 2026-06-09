@@ -39,3 +39,6 @@ desktop.ini
 
 # Build
 frontend/dist/
+
+# TS incremental build info
+*.tsbuildinfo

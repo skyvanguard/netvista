@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import json
 from fastapi import APIRouter, HTTPException
 
-from database import get_db
+from database import get_db, load_scan_hosts
 from models import HostOut
 
 router = APIRouter(prefix="/api/scans/{scan_id}/hosts", tags=["hosts"])
@@ -17,23 +16,7 @@ async def list_hosts(scan_id: int) -> list[dict]:
         if not await cursor.fetchone():
             raise HTTPException(404, "Scan not found")
 
-        cursor = await db.execute("SELECT * FROM hosts WHERE scan_id=?", (scan_id,))
-        hosts = [dict(r) for r in await cursor.fetchall()]
-
-        for host in hosts:
-            cursor = await db.execute(
-                "SELECT port, protocol, state, service, version FROM ports WHERE host_id=?",
-                (host["id"],),
-            )
-            host["ports"] = [dict(r) for r in await cursor.fetchall()]
-
-            cursor = await db.execute(
-                "SELECT hop, ip, rtt, hostname FROM traceroute_hops WHERE host_id=? ORDER BY hop",
-                (host["id"],),
-            )
-            host["traceroute"] = [dict(r) for r in await cursor.fetchall()]
-
-        return hosts
+        return await load_scan_hosts(db, scan_id)
     finally:
         await db.close()
 

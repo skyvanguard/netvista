@@ -7,7 +7,7 @@ import json
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
-from database import get_db
+from database import get_db, load_scan_hosts
 
 router = APIRouter(prefix="/api/scans/{scan_id}/export", tags=["export"])
 
@@ -21,15 +21,7 @@ async def export_scan(scan_id: int, format: str = Query("json", pattern="^(json|
         if not scan:
             raise HTTPException(404, "Scan not found")
 
-        cursor = await db.execute("SELECT * FROM hosts WHERE scan_id=?", (scan_id,))
-        hosts = [dict(r) for r in await cursor.fetchall()]
-
-        for host in hosts:
-            cursor = await db.execute(
-                "SELECT port, protocol, state, service, version FROM ports WHERE host_id=?",
-                (host["id"],),
-            )
-            host["ports"] = [dict(r) for r in await cursor.fetchall()]
+        hosts = await load_scan_hosts(db, scan_id, with_traceroute=False)
 
         if format == "csv":
             return _export_csv(dict(scan), hosts)
