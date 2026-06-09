@@ -16,8 +16,9 @@ Scan networks with nmap, infer architecture, and render an interactive topology 
 - Frontend dev: `cd frontend && npm install && npm run dev` (serves on 5175)
 - Frontend build / typecheck: `cd frontend && npm run build` (runs `tsc -b` then `vite build`)
 - Full stack: `docker compose up --build` → frontend http://localhost:5175, API http://localhost:8040, docs `/docs`
+- Backend tests: `cd backend && pip install -r requirements-dev.txt && pytest` (run a single file with `pytest tests/test_parser.py`)
 
-There is currently **no test suite** and no Python linter configured. The closest thing to a check is `npm run build` for frontend type errors.
+The backend has `pytest` unit tests for the pure logic (`tests/`: parser, categorizer, risk, subnet, target validation). There is no frontend test runner yet and no Python linter configured.
 
 ## Ports & paths
 - Backend: host 8040 → container 8000 conceptually, but in Docker the backend runs `--port 8040` under `network_mode: host`, so it binds 8040 directly on the host (no port mapping in compose).
