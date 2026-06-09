@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import tempfile
 from collections.abc import Awaitable, Callable
@@ -10,6 +11,8 @@ from typing import Any
 from config import NMAP_PATH
 from scanner.parser import parse_nmap_xml
 from scanner.profiles import get_profile_flags
+
+log = logging.getLogger("netvista.nmap")
 
 
 async def run_nmap_scan(
@@ -23,6 +26,7 @@ async def run_nmap_scan(
     with tempfile.TemporaryDirectory() as tmpdir:
         xml_path = os.path.join(tmpdir, "scan.xml")
         cmd = [NMAP_PATH, *flags, "-oX", xml_path, target]
+        log.info("Running nmap: %s", " ".join(cmd))
 
         if on_progress:
             await on_progress(0.0, f"Starting {profile} scan on {target}")

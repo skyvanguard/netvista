@@ -1,16 +1,23 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from auth import verify_api_key
+from config import API_KEY
 from database import init_db
+from logging_config import setup_logging
 from routers import export, hosts, scans, topology
 from services.scan_manager import fail_orphaned_scans
+
+log = logging.getLogger("netvista")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    setup_logging()
+    log.info("NetVista starting (auth %s)", "enabled" if API_KEY else "disabled")
     await init_db()
     await fail_orphaned_scans()
     yield

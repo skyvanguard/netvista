@@ -61,6 +61,9 @@ The backend has `pytest` unit tests for the pure logic and lifecycle (`tests/`: 
 - API-key auth is **opt-in**: set `API_KEY` (backend env). When empty the API is open (default). When set, every `/api` route except `/api/health` requires the key — sent as the `X-API-Key` header (JSON calls), or the `api_key` query param (export download links and the WebSocket, which can't set headers). Logic lives in `auth.py::verify_api_key`; the scans router applies it per-endpoint so its WS can check the query param itself. The frontend reads `VITE_API_KEY` (build-time) and attaches it automatically (`src/api.ts`).
 - `ScanCreate.validate_target` rejects ranges larger than `MAX_TARGET_ADDRESSES` (default 65536 = a /16) to avoid launching an enormous scan.
 
+### Logging
+- `logging_config.setup_logging()` runs in the `lifespan` startup (`force=True` overrides uvicorn's handler). Use `logging.getLogger("netvista.<area>")` — existing loggers: `netvista` (startup), `netvista.scan` (lifecycle/errors), `netvista.nmap` (the exact nmap command). Level via `LOG_LEVEL` (default INFO). Scan failures are logged with `log.exception`.
+
 ### Database access pattern
 - No connection pool. Every handler calls `get_db()` (a fresh `aiosqlite` connection) and closes it in `finally`. Follow this pattern in new routers.
 - Schema lives as one `SCHEMA` string in `database.py`, applied on startup via the FastAPI `lifespan` hook. Cascading deletes rely on `foreign_keys=ON`, so deleting a scan removes its hosts/ports/hops/edges.

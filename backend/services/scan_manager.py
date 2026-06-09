@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from datetime import UTC, datetime
 
 from config import MAX_CONCURRENT_SCANS
@@ -10,6 +11,8 @@ from services.ws_manager import ws_manager
 from topology.builder import build_topology
 from topology.categorizer import categorize_hosts
 from topology.risk import score_hosts
+
+log = logging.getLogger("netvista.scan")
 
 # Bound how many nmap scans run at once; extras stay 'pending' until a slot
 # frees up, so a burst of deep scans can't saturate the host.
@@ -25,12 +28,14 @@ async def fail_orphaned_scans() -> None:
     db = await get_db()
     try:
         now = datetime.now(UTC).isoformat()
-        await db.execute(
+        cursor = await db.execute(
             "UPDATE scans SET status='failed', finished_at=?, error=? "
             "WHERE status IN ('pending', 'running')",
             (now, "Interrupted by server restart"),
         )
         await db.commit()
+        if cursor.rowcount:
+            log.warning("Marked %d orphaned scan(s) as failed on startup", cursor.rowcount)
     finally:
         await db.close()
 
@@ -49,6 +54,7 @@ async def _execute_scan(scan_id: int, target: str, profile: str) -> None:
     """Run scan in background, store results, compute topology."""
     db = await get_db()
     try:
+        log.info("Scan %d starting: target=%s profile=%s", scan_id, target, profile)
         now = datetime.now(UTC).isoformat()
         await db.execute(
             "UPDATE scans SET status='running', started_at=? WHERE id=?",
@@ -62,12 +68,14 @@ async def _execute_scan(scan_id: int, target: str, profile: str) -> None:
                 "status": "running",
                 "progress": round(pct, 3),
                 "message": msg,
-                "hosts_found": 0,
+                # Unknown until the scan finishes; don't claim 0.
+                "hosts_found": None,
             })
 
         try:
             hosts = await run_nmap_scan(target, profile, on_progress)
         except Exception as exc:
+            log.exception("Scan %d failed during nmap run", scan_id)
             now = datetime.now(UTC).isoformat()
             await db.execute(
                 "UPDATE scans SET status='failed', finished_at=?, error=? WHERE id=?",
@@ -79,7 +87,7 @@ async def _execute_scan(scan_id: int, target: str, profile: str) -> None:
                 "status": "failed",
                 "progress": 0,
                 "message": str(exc),
-                "hosts_found": 0,
+                "hosts_found": None,
             })
             return
 
@@ -87,7 +95,8 @@ async def _execute_scan(scan_id: int, target: str, profile: str) -> None:
         categorize_hosts(hosts)
         score_hosts(hosts)
 
-        # Store hosts
+        # Store hosts (one INSERT per host to get its id, then batch its
+        # ports/traceroute hops via executemany to cut round-trips).
         for host in hosts:
             cursor = await db.execute(
                 """INSERT INTO hosts (scan_id, ip, hostname, mac, vendor,
@@ -109,30 +118,40 @@ async def _execute_scan(scan_id: int, target: str, profile: str) -> None:
             )
             host_id = cursor.lastrowid
 
-            for port in host.get("ports", []):
-                await db.execute(
+            ports = host.get("ports", [])
+            if ports:
+                await db.executemany(
                     """INSERT INTO ports (host_id, port, protocol, state, service, version)
                        VALUES (?, ?, ?, ?, ?, ?)""",
-                    (host_id, port["port"], port["protocol"], port["state"],
-                     port.get("service"), port.get("version")),
+                    [
+                        (host_id, p["port"], p["protocol"], p["state"],
+                         p.get("service"), p.get("version"))
+                        for p in ports
+                    ],
                 )
 
-            for hop in host.get("traceroute", []):
-                await db.execute(
+            hops = host.get("traceroute", [])
+            if hops:
+                await db.executemany(
                     """INSERT INTO traceroute_hops (host_id, hop, ip, rtt, hostname)
                        VALUES (?, ?, ?, ?, ?)""",
-                    (host_id, hop["hop"], hop.get("ip"), hop.get("rtt"),
-                     hop.get("hostname")),
+                    [
+                        (host_id, h["hop"], h.get("ip"), h.get("rtt"), h.get("hostname"))
+                        for h in hops
+                    ],
                 )
 
         # Build topology edges
         edges = build_topology(hosts)
-        for edge in edges:
-            await db.execute(
+        if edges:
+            await db.executemany(
                 """INSERT INTO topology_edges (scan_id, source_ip, target_ip, edge_type, weight)
                    VALUES (?, ?, ?, ?, ?)""",
-                (scan_id, edge["source"], edge["target"],
-                 edge.get("type", "traceroute"), edge.get("weight", 1.0)),
+                [
+                    (scan_id, e["source"], e["target"],
+                     e.get("type", "traceroute"), e.get("weight", 1.0))
+                    for e in edges
+                ],
             )
 
         now = datetime.now(UTC).isoformat()
@@ -141,6 +160,7 @@ async def _execute_scan(scan_id: int, target: str, profile: str) -> None:
             (now, len(hosts), scan_id),
         )
         await db.commit()
+        log.info("Scan %d completed: %d hosts, %d edges", scan_id, len(hosts), len(edges))
 
         await ws_manager.broadcast(scan_id, {
             "scan_id": scan_id,
@@ -151,6 +171,7 @@ async def _execute_scan(scan_id: int, target: str, profile: str) -> None:
         })
 
     except Exception as exc:
+        log.exception("Scan %d failed while storing results", scan_id)
         now = datetime.now(UTC).isoformat()
         await db.execute(
             "UPDATE scans SET status='failed', finished_at=?, error=? WHERE id=?",
