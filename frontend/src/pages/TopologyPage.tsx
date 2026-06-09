@@ -32,11 +32,16 @@ export function TopologyPage() {
 
   const handleSearch = useCallback(
     (query: string) => {
-      if (!query.trim()) return;
       const container = graphContainerRef.current;
       if (!container) return;
       const cy = (container as any).__cy;
       if (!cy) return;
+
+      // Empty query: restore full opacity on every node.
+      if (!query.trim()) {
+        cy.nodes().style('opacity', 1);
+        return;
+      }
 
       const q = query.toLowerCase();
       cy.nodes().forEach((node: any) => {
@@ -47,11 +52,6 @@ export function TopologyPage() {
           String(data.portCount).includes(q);
         node.style('opacity', match || data.type === 'subnet' ? 1 : 0.15);
       });
-
-      // Reset after 3 seconds if query is cleared
-      if (!query) {
-        cy.nodes().style('opacity', 1);
-      }
     },
     [],
   );

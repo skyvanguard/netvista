@@ -12,6 +12,7 @@ SCAN_PROFILES: dict[str, dict] = {
         "flags": [
             "-sS", "-sV", "--top-ports", "1000",
             "-O", "--traceroute", "-T4",
+            "--stats-every", "2s",
         ],
         "description": "SYN scan, top 1000 ports, OS detection, traceroute",
         "estimated_time": "~15 minutes for /24",
@@ -21,6 +22,7 @@ SCAN_PROFILES: dict[str, dict] = {
         "flags": [
             "-sS", "-sV", "-sC", "-O",
             "-p-", "--traceroute", "-T3",
+            "--stats-every", "2s",
         ],
         "description": "Full port scan with scripts, OS detection, traceroute",
         "estimated_time": "~45 minutes for /24",

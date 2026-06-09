@@ -37,8 +37,7 @@ CREATE TABLE IF NOT EXISTS ports (
     protocol TEXT NOT NULL DEFAULT 'tcp',
     state TEXT NOT NULL DEFAULT 'open',
     service TEXT,
-    version TEXT,
-    banner TEXT
+    version TEXT
 );
 
 CREATE TABLE IF NOT EXISTS traceroute_hops (
@@ -60,6 +59,7 @@ CREATE TABLE IF NOT EXISTS topology_edges (
 );
 
 CREATE INDEX IF NOT EXISTS idx_hosts_scan ON hosts(scan_id);
+CREATE INDEX IF NOT EXISTS idx_hosts_scan_ip ON hosts(scan_id, ip);
 CREATE INDEX IF NOT EXISTS idx_ports_host ON ports(host_id);
 CREATE INDEX IF NOT EXISTS idx_hops_host ON traceroute_hops(host_id);
 CREATE INDEX IF NOT EXISTS idx_edges_scan ON topology_edges(scan_id);

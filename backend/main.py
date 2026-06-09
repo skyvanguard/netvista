@@ -23,7 +23,9 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    # Credentials cannot be combined with a wildcard origin (browsers reject it),
+    # and NetVista uses no cookies/auth, so credentials stay off.
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
