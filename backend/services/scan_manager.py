@@ -10,6 +10,25 @@ from topology.categorizer import categorize_hosts
 from topology.risk import score_hosts
 
 
+async def fail_orphaned_scans() -> None:
+    """Mark scans left 'running'/'pending' by a previous process as failed.
+
+    Background scan tasks do not survive a server restart, so any scan still
+    in a non-terminal state at startup is dead and must not stay stuck.
+    """
+    db = await get_db()
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        await db.execute(
+            "UPDATE scans SET status='failed', finished_at=?, error=? "
+            "WHERE status IN ('pending', 'running')",
+            (now, "Interrupted by server restart"),
+        )
+        await db.commit()
+    finally:
+        await db.close()
+
+
 async def execute_scan(scan_id: int, target: str, profile: str) -> None:
     """Run scan in background, store results, compute topology."""
     db = await get_db()

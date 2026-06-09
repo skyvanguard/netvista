@@ -5,11 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from database import init_db
 from routers import scans, hosts, topology, export
+from services.scan_manager import fail_orphaned_scans
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    await fail_orphaned_scans()
     yield
 
 

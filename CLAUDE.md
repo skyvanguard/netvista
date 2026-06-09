@@ -34,9 +34,11 @@ The backend has `pytest` unit tests for the pure logic (`tests/`: parser, catego
 ## Architecture
 
 ### Scan lifecycle (the core flow)
-1. `POST /api/scans` (routers/scans.py) inserts a `pending` scan row, then fires `execute_scan` via `asyncio.create_task` and returns immediately.
+1. `POST /api/scans` (routers/scans.py) inserts a `pending` scan row, then fires `execute_scan` via `asyncio.create_task`, registers the task in `services/scan_registry.py`, and returns immediately.
 2. `services/scan_manager.py::execute_scan` is the orchestrator: sets status `running` → runs nmap → categorizes → scores → persists hosts/ports/traceroute → builds & persists topology edges → sets `completed` (or `failed` with error). It broadcasts every state change over WebSocket.
 3. State machine: `pending → running → completed | failed`.
+4. `DELETE /api/scans/{id}` calls `scan_registry.cancel`, which cancels the running task; `nmap_runner` kills the nmap subprocess in a `finally` so it isn't orphaned.
+5. On startup the `lifespan` hook runs `fail_orphaned_scans` — background tasks don't survive a restart, so any scan left `pending`/`running` is marked `failed`.
 
 ### Backend module responsibilities
 - `scanner/profiles.py` — three profiles (`quick`/`standard`/`deep`) mapping to nmap flag lists. `standard`/`deep` need root for `-sS`/`-O`/`--traceroute`.

@@ -32,24 +32,34 @@ async def run_nmap_scan(
             stderr=asyncio.subprocess.PIPE,
         )
 
-        # Read output for progress hints
-        stdout_data = b""
-        if process.stdout:
-            while True:
-                line = await process.stdout.readline()
-                if not line:
-                    break
-                stdout_data += line
-                decoded = line.decode(errors="replace").strip()
-                # nmap prints progress like "About 45.00% done"
-                if "% done" in decoded and on_progress:
-                    try:
-                        pct = float(decoded.split("%")[0].split()[-1]) / 100.0
-                        await on_progress(pct, decoded)
-                    except (ValueError, IndexError):
-                        pass
+        try:
+            # Read output for progress hints
+            stdout_data = b""
+            if process.stdout:
+                while True:
+                    line = await process.stdout.readline()
+                    if not line:
+                        break
+                    stdout_data += line
+                    decoded = line.decode(errors="replace").strip()
+                    # nmap prints progress like "About 45.00% done"
+                    if "% done" in decoded and on_progress:
+                        try:
+                            pct = float(decoded.split("%")[0].split()[-1]) / 100.0
+                            await on_progress(pct, decoded)
+                        except (ValueError, IndexError):
+                            pass
 
-        _, stderr_data = await process.communicate()
+            _, stderr_data = await process.communicate()
+        finally:
+            # If the scan was cancelled (or errored) mid-run, don't leave nmap
+            # running as an orphan process.
+            if process.returncode is None:
+                try:
+                    process.kill()
+                    await process.wait()
+                except ProcessLookupError:
+                    pass
 
         if process.returncode != 0 and not Path(xml_path).exists():
             error_msg = stderr_data.decode(errors="replace").strip()
