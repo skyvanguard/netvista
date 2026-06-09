@@ -16,11 +16,12 @@ Scan networks with nmap, infer architecture, and render an interactive topology 
 - Frontend dev: `cd frontend && npm install && npm run dev` (serves on 5175)
 - Frontend build / typecheck: `cd frontend && npm run build` (runs `tsc -b` then `vite build`)
 - Frontend lint: `cd frontend && npm run lint` (ESLint flat config in `eslint.config.js`)
+- Frontend tests: `cd frontend && npm test` (Vitest + Testing Library, jsdom; `*.test.ts(x)` next to sources)
 - Full stack: `docker compose up --build` → frontend http://localhost:5175, API http://localhost:8040, docs `/docs`
 - Backend tests: `cd backend && pip install -r requirements-dev.txt && pytest` (run a single file with `pytest tests/test_parser.py`)
 - Backend lint: `cd backend && ruff check .` (config in `backend/ruff.toml`)
 
-CI (`.github/workflows/ci.yml`) runs `ruff` + `pytest` (backend) and `eslint` + `npm run build` (frontend) on every push and PR.
+CI (`.github/workflows/ci.yml`) runs `ruff` + `pytest` (backend) and `eslint` + `vitest` + `npm run build` (frontend) on every push and PR.
 
 The backend has `pytest` unit tests for the pure logic and lifecycle (`tests/`: parser, categorizer, risk, subnet, target validation, orphan recovery, task cancellation, concurrency limit, host loader) and is linted with `ruff`. There is no frontend test runner yet.
 
