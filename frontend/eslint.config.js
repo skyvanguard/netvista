@@ -23,9 +23,8 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
-      // Cytoscape interop legitimately needs `any` in a few spots; flag but
-      // don't fail the build.
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // No `any`: the Cytoscape interop is now typed (see utils/cy.ts).
+      '@typescript-eslint/no-explicit-any': 'error',
     },
   },
 );

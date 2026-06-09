@@ -4,6 +4,7 @@ import coseBilkent from 'cytoscape-cose-bilkent';
 import type { TopologyElements } from '../types';
 import { cytoscapeStyles } from '../utils/cytoscape-styles';
 import { layouts } from '../utils/layout-configs';
+import type { CyContainer } from '../utils/cy';
 
 cytoscape.use(coseBilkent);
 
@@ -59,7 +60,7 @@ export function NetworkGraph({ elements, layout, onNodeSelect }: Props) {
   useEffect(() => {
     const container = containerRef.current;
     if (container && cyRef.current) {
-      (container as any).__cy = cyRef.current;
+      (container as CyContainer).__cy = cyRef.current;
     }
   });
 
