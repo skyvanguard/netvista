@@ -20,6 +20,8 @@ Scan networks with nmap, infer architecture, and render an interactive topology 
 - Backend tests: `cd backend && pip install -r requirements-dev.txt && pytest` (run a single file with `pytest tests/test_parser.py`)
 - Backend lint: `cd backend && ruff check .` (config in `backend/ruff.toml`)
 
+CI (`.github/workflows/ci.yml`) runs `ruff` + `pytest` (backend) and `eslint` + `npm run build` (frontend) on every push and PR.
+
 The backend has `pytest` unit tests for the pure logic and lifecycle (`tests/`: parser, categorizer, risk, subnet, target validation, orphan recovery, task cancellation, concurrency limit, host loader) and is linted with `ruff`. There is no frontend test runner yet.
 
 ## Ports & paths
