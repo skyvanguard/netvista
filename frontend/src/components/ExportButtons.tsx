@@ -1,4 +1,5 @@
 import { api } from '../api';
+import type { CyContainer } from '../utils/cy';
 
 interface Props {
   scanId: number;
@@ -9,7 +10,7 @@ export function ExportButtons({ scanId, graphContainerRef }: Props) {
   const exportPng = () => {
     const container = graphContainerRef?.current;
     if (!container) return;
-    const cy = (container as any).__cy;
+    const cy = (container as CyContainer).__cy;
     if (!cy) return;
 
     const png = cy.png({ output: 'blob', bg: '#0a0a0f', full: true, scale: 2 });

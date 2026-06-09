@@ -7,7 +7,9 @@ import { HostDetailPanel } from '../components/HostDetailPanel';
 import { SubnetLegend } from '../components/SubnetLegend';
 import { SearchBar } from '../components/SearchBar';
 import { ExportButtons } from '../components/ExportButtons';
+import type cytoscape from 'cytoscape';
 import type { Host } from '../types';
+import type { CyContainer } from '../utils/cy';
 
 export function TopologyPage() {
   const { scanId } = useParams<{ scanId: string }>();
@@ -34,7 +36,7 @@ export function TopologyPage() {
     (query: string) => {
       const container = graphContainerRef.current;
       if (!container) return;
-      const cy = (container as any).__cy;
+      const cy = (container as CyContainer).__cy;
       if (!cy) return;
 
       // Empty query: restore full opacity on every node.
@@ -44,7 +46,7 @@ export function TopologyPage() {
       }
 
       const q = query.toLowerCase();
-      cy.nodes().forEach((node: any) => {
+      cy.nodes().forEach((node: cytoscape.NodeSingular) => {
         const data = node.data();
         const match =
           data.ip?.toLowerCase().includes(q) ||
@@ -59,7 +61,7 @@ export function TopologyPage() {
   const handleFitView = () => {
     const container = graphContainerRef.current;
     if (!container) return;
-    const cy = (container as any).__cy;
+    const cy = (container as CyContainer).__cy;
     cy?.fit(undefined, 50);
   };
 

@@ -1,3 +1,5 @@
+import type cytoscape from 'cytoscape';
+
 export const layouts: Record<string, object> = {
   'cose-bilkent': {
     name: 'cose-bilkent',
@@ -25,7 +27,8 @@ export const layouts: Record<string, object> = {
     padding: 50,
     animate: true,
     animationDuration: 500,
-    concentric: (node: any) => (node.data('isGateway') ? 10 : node.degree()),
+    concentric: (node: cytoscape.NodeSingular) =>
+      node.data('isGateway') ? 10 : node.degree(),
     levelWidth: () => 2,
     minNodeSpacing: 60,
   },

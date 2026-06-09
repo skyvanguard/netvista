@@ -4,6 +4,14 @@ All notable changes to NetVista are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-06-09
+
+### Changed
+- Typed the Cytoscape interop and removed every `any`: a shared `CyContainer`
+  type for the stashed instance, `NodeSingular` in the style/layout mapper
+  callbacks, and a typed `catch`. The ESLint `@typescript-eslint/no-explicit-any`
+  rule is now `error` (was `warn`) to prevent regressions.
+
 ## [0.2.0] - 2026-06-09
 
 A hardening, robustness, observability and quality pass over the initial

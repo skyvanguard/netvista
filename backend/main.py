@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="NetVista",
     description="Network Topology Auto-Mapper",
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
