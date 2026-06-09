@@ -12,4 +12,5 @@ API_KEY: str = os.getenv("API_KEY", "")
 # Reject scan targets whose range is larger than this many addresses
 # (default 65536 = a /16). Guards against accidentally scanning, e.g., a /8.
 MAX_TARGET_ADDRESSES: int = int(os.getenv("MAX_TARGET_ADDRESSES", "65536"))
+LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 DATA_DIR: Path = Path(os.getenv("DATA_DIR", "/data" if os.path.exists("/data") else "."))

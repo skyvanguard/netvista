@@ -58,7 +58,8 @@ export interface ScanProgress {
   status: string;
   progress: number;
   message: string;
-  hosts_found: number;
+  // null while the scan is running (count is only known once it finishes).
+  hosts_found: number | null;
 }
 
 export type NodeType = 'server' | 'workstation' | 'network_device' | 'printer' | 'camera' | 'iot' | 'unknown';

@@ -33,7 +33,7 @@ export function ScanProgress({ progress }: Props) {
 
       <p className="text-xs text-gray-500 truncate">{progress.message}</p>
 
-      {progress.hosts_found > 0 && (
+      {(progress.hosts_found ?? 0) > 0 && (
         <p className="text-xs text-gray-400 mt-1">
           {progress.hosts_found} hosts found
         </p>

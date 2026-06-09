@@ -4,7 +4,7 @@ import asyncio
 
 import database
 import services.scan_manager as scan_manager
-from database import init_db, get_db
+from database import get_db, init_db, load_scan_hosts
 from services.scan_manager import fail_orphaned_scans
 from services.scan_registry import register, cancel
 
@@ -80,6 +80,68 @@ def test_execute_scan_respects_concurrency_limit(tmp_path, monkeypatch):
 
     peak = asyncio.run(scenario())
     assert peak == 1  # never more than the semaphore allows
+
+
+def test_execute_scan_persists_hosts_ports_and_edges(tmp_path, monkeypatch):
+    _use_temp_db(tmp_path, monkeypatch)
+
+    fake_hosts = [
+        {
+            "ip": "192.168.1.10",
+            "ports": [
+                {"port": 22, "protocol": "tcp", "state": "open", "service": "ssh", "version": None},
+                {"port": 80, "protocol": "tcp", "state": "open", "service": "http", "version": None},
+            ],
+            "traceroute": [
+                {"hop": 1, "ip": "192.168.1.1", "rtt": 1.0, "hostname": None},
+                {"hop": 2, "ip": "192.168.1.10", "rtt": 2.0, "hostname": None},
+            ],
+        },
+        {
+            "ip": "192.168.1.20",
+            "ports": [
+                {"port": 443, "protocol": "tcp", "state": "open", "service": "https", "version": None},
+            ],
+            "traceroute": [
+                {"hop": 1, "ip": "192.168.1.1", "rtt": 1.0, "hostname": None},
+                {"hop": 2, "ip": "192.168.1.20", "rtt": 2.0, "hostname": None},
+            ],
+        },
+    ]
+
+    async def scenario():
+        await init_db()
+        db = await get_db()
+        await db.execute(
+            "INSERT INTO scans (id, target, profile, status, created_at) "
+            "VALUES (1, '192.168.1.0/24', 'standard', 'pending', 'now')"
+        )
+        await db.commit()
+        await db.close()
+
+        async def fake_nmap(target, profile, on_progress=None):
+            return [dict(h) for h in fake_hosts]
+
+        monkeypatch.setattr(scan_manager, "run_nmap_scan", fake_nmap)
+        await scan_manager.execute_scan(1, "192.168.1.0/24", "standard")
+
+        db = await get_db()
+        cur = await db.execute("SELECT status, host_count FROM scans WHERE id=1")
+        scan = dict(await cur.fetchone())
+        hosts = await load_scan_hosts(db, 1)
+        cur = await db.execute("SELECT COUNT(*) AS n FROM topology_edges WHERE scan_id=1")
+        edge_count = (await cur.fetchone())["n"]
+        await db.close()
+        return scan, hosts, edge_count
+
+    scan, hosts, edge_count = asyncio.run(scenario())
+    assert scan["status"] == "completed"
+    assert scan["host_count"] == 2
+    by_ip = {h["ip"]: h for h in hosts}
+    assert {p["port"] for p in by_ip["192.168.1.10"]["ports"]} == {22, 80}
+    assert {p["port"] for p in by_ip["192.168.1.20"]["ports"]} == {443}
+    assert [h["hop"] for h in by_ip["192.168.1.10"]["traceroute"]] == [1, 2]
+    assert edge_count > 0  # traceroute + same-subnet edges were batch-inserted
 
 
 def test_registry_cancels_running_task():
