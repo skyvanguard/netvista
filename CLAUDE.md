@@ -15,6 +15,7 @@ Scan networks with nmap, infer architecture, and render an interactive topology 
 - Backend dev: `cd backend && pip install -r requirements.txt && uvicorn main:app --reload --port 8040`
 - Frontend dev: `cd frontend && npm install && npm run dev` (serves on 5175)
 - Frontend build / typecheck: `cd frontend && npm run build` (runs `tsc -b` then `vite build`)
+- Frontend lint: `cd frontend && npm run lint` (ESLint flat config in `eslint.config.js`)
 - Full stack: `docker compose up --build` → frontend http://localhost:5175, API http://localhost:8040, docs `/docs`
 - Backend tests: `cd backend && pip install -r requirements-dev.txt && pytest` (run a single file with `pytest tests/test_parser.py`)
 - Backend lint: `cd backend && ruff check .` (config in `backend/ruff.toml`)
@@ -60,7 +61,7 @@ The backend has `pytest` unit tests for the pure logic and lifecycle (`tests/`: 
 
 ### WebSocket
 - `services/ws_manager.py` holds an in-memory `dict[scan_id, list[WebSocket]]` (singleton `ws_manager`). Not shared across processes — assumes a single uvicorn worker.
-- Client endpoint: `/api/scans/{id}/ws`. The frontend `useScanProgress` hook connects on scan launch; there is no reconnect/backfill logic, so progress before connect is lost.
+- Client endpoint: `/api/scans/{id}/ws`. The frontend `useScanProgress` hook connects on scan launch and reconnects with exponential backoff (capped at 10s) until the scan reaches a terminal state or the component unmounts. Progress emitted before the first connect is still lost (the 3s poll in `ScanPage` covers final state).
 
 ### Frontend
 - Two routes (`App.tsx`): `/` = `ScanPage` (launch + history), `/topology/:scanId` = `TopologyPage`.
