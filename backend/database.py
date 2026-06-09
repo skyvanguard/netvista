@@ -66,6 +66,56 @@ CREATE INDEX IF NOT EXISTS idx_edges_scan ON topology_edges(scan_id);
 """
 
 
+async def load_scan_hosts(
+    db: aiosqlite.Connection,
+    scan_id: int,
+    *,
+    with_traceroute: bool = True,
+) -> list[dict]:
+    """Load all hosts of a scan with their ports (and optionally traceroute).
+
+    Uses a fixed number of queries (2-3) regardless of host count, instead of
+    the 2N+1 a per-host loop would issue.
+    """
+    cursor = await db.execute(
+        "SELECT * FROM hosts WHERE scan_id=? ORDER BY id", (scan_id,)
+    )
+    hosts = [dict(r) for r in await cursor.fetchall()]
+    if not hosts:
+        return hosts
+
+    by_id = {h["id"]: h for h in hosts}
+    for host in hosts:
+        host["ports"] = []
+        if with_traceroute:
+            host["traceroute"] = []
+
+    host_ids = list(by_id)
+    placeholders = ",".join("?" * len(host_ids))
+
+    cursor = await db.execute(
+        f"SELECT host_id, port, protocol, state, service, version "
+        f"FROM ports WHERE host_id IN ({placeholders})",
+        host_ids,
+    )
+    for row in await cursor.fetchall():
+        row = dict(row)
+        by_id[row.pop("host_id")]["ports"].append(row)
+
+    if with_traceroute:
+        cursor = await db.execute(
+            f"SELECT host_id, hop, ip, rtt, hostname "
+            f"FROM traceroute_hops WHERE host_id IN ({placeholders}) "
+            f"ORDER BY host_id, hop",
+            host_ids,
+        )
+        for row in await cursor.fetchall():
+            row = dict(row)
+            by_id[row.pop("host_id")]["traceroute"].append(row)
+
+    return hosts
+
+
 async def get_db() -> aiosqlite.Connection:
     db = await aiosqlite.connect(DATABASE_URL)
     db.row_factory = aiosqlite.Row
