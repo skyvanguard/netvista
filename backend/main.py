@@ -5,7 +5,7 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from auth import verify_api_key
-from config import API_KEY
+from config import API_KEY, CORS_ORIGINS
 from database import init_db
 from logging_config import setup_logging
 from routers import export, hosts, scans, topology
@@ -32,13 +32,13 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     # Auth (when enabled) is a header/query API key, not cookies, so credentials
-    # stay off — which is also required since combining them with a wildcard
-    # origin is rejected by browsers.
+    # stay off. Origins are restricted to CORS_ORIGINS (configurable) instead of
+    # a wildcard to avoid exposing the API to arbitrary sites.
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Content-Type", "X-API-Key"],
 )
 
 # API-key auth (no-op unless API_KEY is set). The scans router applies it
